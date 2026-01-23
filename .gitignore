@@ -1,0 +1,14 @@
+# Python virtual environment
+backend/.venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+# Frontend
+frontend/streamlite/
+frontend/.env
