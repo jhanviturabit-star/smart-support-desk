@@ -2,80 +2,146 @@ import streamlit as st
 import pandas as pd
 import requests
 
-BACKEND_URL = 'http://127.0.0.1:5000/'
+BACKEND_URL = "http://127.0.0.1:5000"
 
-st.set_page_config(page_title='Smart Support Desk', layout='wide')
+st.set_page_config(page_title="Smart Support Desk", layout="wide")
 
-st.title('Smart Support Desk')
+# Session State
+if "token" not in st.session_state:
+    st.session_state.token = None
+    st.session_state.role = None
 
-#1. Dashboard
-
-st.header('Dashboard')
-
-dashboard_res = requests.get(f'{BACKEND_URL}/dashboard')
-
-if dashboard_res.status_code == 200:
-    data = dashboard_res.json()['data']
-
-    col1, col2, col3, col4, col5= st.columns(5)
-
-    col1.metric('Total Tickets', data['total_tickets']) #total tickets
-
-    #define all status
-    statuses = ['Open', 'Closed', 'In_progress', 'Resolved']
-
-    #initializ counts
-    status_count = {
-        'Open' : 0,
-        'Closed' : 0,
-        'In_progress' : 0,
-        'Resolved' : 0
+# Helpers
+def auth_headers():
+    return {
+        "Authorization": f"Bearer {st.session_state.token}"
     }
 
-    #loop
-    for item in data['by_status']:
-        status = item['t_status']
-        count = count['count']
+# AUTH PAGE
+def auth_page():
+    st.title("Smart Support Desk")
 
-        if status in status_count:
-            status_count[status] = count
+    tab1, tab2 = st.tabs(["Login", "Sign Up"])
 
-    col2.metric('Open Tickets', status_count['Open'])
-    col3.metric('Closed Tickets', ['Closed'])
-    col4.metric('In Progress Tickets', ['In_progress'])
-    col5.metric('Resolved Tickets', ['Resolved'])
+    #LOGIN
+    with tab1:
+        email = st.text_input("Email", key="login_email")
+        password = st.text_input("Password", type="password", key="login_password")
 
-#2. Customers
+        if st.button("Login"):
+            res = requests.post(
+                f"{BACKEND_URL}/auth/login",
+                json={"email": email, "password": password}
+            )
 
-st.header('Customers')
+            if res.status_code == 200:
+                data = res.json()
+                st.session_state.token = data["token"]
+                st.session_state.role = data["role"]
+                st.success("Logged in successfully")
+                st.rerun()
+            else:
+                st.error("Invalid credentials")
 
-customers_res = requests.get(f'{BACKEND_URL}/customers')
+    #SIGNUP
+    with tab2:
+        st.info("New users will be registered as **Agents**")
 
-if customers_res.status_code == 200:
-    customers = customers_res.json()
-    df_customers = pd.DataFrame(customers)
-    st.dataframe(df_customers, use_container_width=True)
+        name = st.text_input("Full Name", key="signup_name")
+        email = st.text_input("Email", key="signup_email")
+        password = st.text_input("Password", type="password", key="signup_password")
 
-#3. Tickets
+        if st.button("Create Account"):
+            res = requests.post(
+                f"{BACKEND_URL}/auth/register",
+                json={
+                    "name": name,
+                    "email": email,
+                    "password": password
+                }
+            )
 
-st.header('Tickets')
+            if res.status_code == 201:
+                st.success("Account created. Please login.")
+            else:
+                st.error(res.json().get("error", "Registration failed"))
 
-status_filter = st.selectbox('Filter by status', options=['All', 'Open', 'Closed', 'In_progress', 'Resolved'])
+    st.stop()  #stop app here if not logged in
 
-priority_filter = st.selectbox('Filter by priority', options=['All', 'High', 'Low', 'Critical', 'Medium'])
+# AUTH GATE
+if st.session_state.token is None:
+    auth_page()
+
+# MAIN APP
+st.title("Smart Support Desk")
+
+#DASHBOARD
+if st.session_state.role in ["TEAM_LEAD", "ADMIN"]:
+    st.header("Dashboard")
+
+    res = requests.get(
+        f"{BACKEND_URL}/dashboard/summary",
+        headers=auth_headers()
+    )
+
+    if res.status_code == 200:
+        data = res.json()["data"]
+
+        col1, col2, col3, col4, col5 = st.columns(5)
+        col1.metric("Total Tickets", data["total_tickets"])
+
+        status_count = {
+            "Open": 0,
+            "Closed": 0,
+            "In_progress": 0,
+            "Resolved": 0
+        }
+
+        for item in data["tickets_by_status"]:
+            status_count[item["t_status"]] = item["count"]
+
+        col2.metric("Open", status_count["Open"])
+        col3.metric("Closed", status_count["Closed"])
+        col4.metric("In Progress", status_count["In_progress"])
+        col5.metric("Resolved", status_count["Resolved"])
+
+#CUSTOMERS
+st.header("Customers")
+
+res = requests.get(
+    f"{BACKEND_URL}/customers",
+    headers=auth_headers()
+)
+
+if res.status_code == 200:
+    df = pd.DataFrame(res.json())
+    st.dataframe(df, use_container_width=True)
+
+#TICKETS
+st.header("Tickets")
+
+status_filter = st.selectbox(
+    "Status",
+    ["All", "Open", "Closed", "In_progress", "Resolved"]
+)
+
+priority_filter = st.selectbox(
+    "Priority",
+    ["All", "Low", "Medium", "High", "Critical"]
+)
 
 params = {}
+if status_filter != "All":
+    params["status"] = status_filter
+if priority_filter != "All":
+    params["priority"] = priority_filter
 
-if status_filter != 'All':
-    params['status'] = status_filter
+res = requests.get(
+    f"{BACKEND_URL}/tickets",
+    headers=auth_headers(),
+    params=params
+)
 
-if priority_filter != 'All':
-    params['priority'] = priority_filter
-    
-tickets_res = requests.get(f'{BACKEND_URL}/tickets', params=params)
-
-if tickets_res.status_code == 200:
-    tickets = tickets_res.json()
-    df_tickets = pd.DataFrame(tickets)
-    st.dataframe(df_tickets, use_container_width=True)
-
+if res.status_code == 200:
+    df = pd.DataFrame(res.json())
+    st.dataframe(df, use_container_width=True)
