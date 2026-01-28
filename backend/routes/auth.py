@@ -40,7 +40,39 @@ def login():
         "role": user["role"]
     }), 200
 
+@auth_bp.route('/register', methods=['POST'])
+def register():   
+    data = request.json
 
+    if not data or "name" not in data or "email" not in data or "password" not in data:
+        return jsonify({"error": "Missing fields are required"}), 400
+    
+    name = data['name']
+    email = data['email']
+    password = data['password']
+    
+    password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute(
+            """
+            INSERT INTO users (user_name, email, password_hash, role)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (name, email, password_hash, "AGENT")
+        )
+        conn.commit()
+        return jsonify({"message": "User registered successfully"}), 201
+
+    except mysql.connector.IntegrityError:
+        return jsonify({"error": "Email already exists"}), 409
+
+    finally:
+        cursor.close()
+        conn.close()
 # def require_permission(permission_name):
 #     def decorator(func):
 #         def wrapper(*args, **kwargs):
