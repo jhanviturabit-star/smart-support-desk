@@ -63,8 +63,15 @@ def auth_page():
 
             if res.status_code == 201:
                 st.success("Account created. Please login.")
+                st.write("STATUS:", res.status_code)
+                st.write("RESPONSE:", res.text)
             else:
-                st.error(res.json().get("error", "Registration failed"))
+                try:
+                    error_mssg = res.json().get('error', 'Registration failed')
+                except:
+                    error_mssg = "Please try again"
+
+                st.error(error_mssg)
 
     st.stop()  #stop app here if not logged in
 
@@ -119,6 +126,7 @@ if res.status_code == 200:
 
 #TICKETS
 st.header("Tickets")
+
 
 status_filter = st.selectbox(
     "Status",

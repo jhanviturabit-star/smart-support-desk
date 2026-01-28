@@ -1,6 +1,7 @@
 # CREATE_CUSTOMER = 'CREATE_CUSTOMER'
 # VIEW_CUSTOMER = 'VIEW_CUSTOMER'
 # UPDATE_CUSTOMER = 'UPDATE_CUSTOMER'
+# CREATE_USER = 'CREATE_USER'
 
 # CREATE_TICKET = 'CREATE_TICKET'
 # VIEW_TICKET = 'VIEW_TICKET'
@@ -25,10 +26,24 @@
 #         CREATE_TICKET,
 #         VIEW_TICKET,
 #         UPDATE_TICKET_STATUS,
+#         UPDATE_TICKET_PRIORITY,
+#         VIEW_DASHBOARD_BASICS
+#       },
         
         
-#     }
+#      "TEAM_LEAD": {
+#         CREATE_CUSTOMER,
+#         VIEW_CUSTOMER,
+#         UPDATE_CUSTOMER,
+#         CREATE_TICKET,
+#         VIEW_TICKET,
+#         UPDATE_TICKET_STATUS,
+#         UPDATE_TICKET_PRIORITY,
+#         VIEW_DASHBOARD_ADVANCED
+#       },
 
-
-
-# }
+#       "ADMIN": {
+#          CREATE_USER,
+#          CREATE_CUSTOMER,
+#          CREATE_TICKET
+#        }       
