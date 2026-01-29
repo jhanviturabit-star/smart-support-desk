@@ -1,5 +1,5 @@
 import streamlit as st
-#import pandas as pd
+import pandas as pd
 import requests
 from streamlit_app import BACKEND_URL, auth_headers
 

@@ -1,8 +1,10 @@
 import streamlit as st
 import pandas as pd
 import requests
+from utils import BACKEND_URL, auth_headers
 
-BACKEND_URL = "http://127.0.0.1:5000"
+if 'user_id' not in st.session_state:
+    st.session_state.user_id = None
 
 st.set_page_config(page_title="Smart Support Desk", layout="wide")
 
@@ -10,12 +12,6 @@ st.set_page_config(page_title="Smart Support Desk", layout="wide")
 if "token" not in st.session_state:
     st.session_state.token = None
     st.session_state.role = None
-
-# Helpers
-def auth_headers():
-    return {
-        "Authorization": f"Bearer {st.session_state.token}"
-    }
 
 # AUTH PAGE
 def auth_page():
@@ -38,6 +34,8 @@ def auth_page():
                 data = res.json()
                 st.session_state.token = data["token"]
                 st.session_state.role = data["role"]
+                st.write("LOGIN RESPONSE:", data)
+                st.session_state.user_id = data["user_id"]
                 st.success("Logged in successfully")
                 st.rerun()
             else:
