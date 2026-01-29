@@ -5,6 +5,7 @@ from models.customer import CreateCustomer
 from auth.decorators import require_roles
 import mysql.connector
 
+
 customers_bp = Blueprint('customers', __name__)
 
 @customers_bp.route("/create", methods=["POST"])
