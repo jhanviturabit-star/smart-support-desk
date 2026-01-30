@@ -19,7 +19,8 @@ def require_roles(*roles):
                 if payload['role'] not in roles:
                     return jsonify({'error' : 'Access denied'}), 403
                 
-                g.user = payload #attach user information
+                g.user_id = payload['user_id'] #attach user information
+                g.role = payload['role']
 
             except jwt.ExpiredSignatureError:
                 return jsonify({'error': 'Token expired'}), 401

@@ -3,6 +3,8 @@ import pandas as pd
 import requests
 from utils import BACKEND_URL, auth_headers
 
+#can_modify = (st.session_state.role == 'ADMIN' or row.get('created_by') == st.session_state.user_id)
+
 if 'user_id' not in st.session_state:
     st.session_state.user_id = None
 
@@ -61,8 +63,8 @@ def auth_page():
 
             if res.status_code == 201:
                 st.success("Account created. Please login.")
-                st.write("STATUS:", res.status_code)
-                st.write("RESPONSE:", res.text)
+                st.success("STATUS:", res.status_code)
+                st.success("RESPONSE:", res.text)
             else:
                 try:
                     error_mssg = res.json().get('error', 'Registration failed')

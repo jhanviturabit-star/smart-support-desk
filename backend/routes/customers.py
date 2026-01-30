@@ -1,10 +1,9 @@
-from flask import jsonify, request, Blueprint
+from flask import jsonify, request, Blueprint, g    
 from pydantic import ValidationError
 from db import get_db_connection
 from models.customer import CreateCustomer
 from auth.decorators import require_roles
 import mysql.connector
-
 
 customers_bp = Blueprint('customers', __name__)
 
@@ -26,10 +25,10 @@ def create_customer():
         cursor = conn.cursor()
 
         query = """
-            INSERT INTO customers (c_name, c_email, phone)
-            VALUES (%s, %s, %s)
+            INSERT INTO customers (c_name, c_email, phone, created_by)
+            VALUES (%s, %s, %s, %s)
         """
-        cursor.execute(query, (data.c_name, data.c_email, data.phone))
+        cursor.execute(query, (data.c_name, data.c_email, data.phone, g.user_id))
         conn.commit()
 
         return jsonify({
@@ -58,7 +57,7 @@ def get_customers():
         query = """
         SELECT * from customers
         """
-        cursor.execute(query)
+        cursor.execute("SELECT c_id, c_name, c_email, phone, created_by FROM customers")
         
         customers = cursor.fetchall()
 
@@ -69,20 +68,20 @@ def get_customers():
             "error" : "No customers found!",
             "details" : str(e)
         }), 500
-    
+
     finally:
         cursor.close()
         conn.close()
 
 @customers_bp.route('/<int:customer_id>', methods=['PUT'])
-@require_roles('ADMIN')
+@require_roles('ADMIN', 'AGENT')
 def update_customer(customer_id): 
     # import pdb
     # pdb.set_trace()
     data = request.json or {}
 
-    name = data.get('name')
-    email = data.get('email')
+    name = data.get('c_name')
+    email = data.get('c_email')
     phone = data.get('phone')
 
     if not name or not email:
@@ -97,7 +96,7 @@ def update_customer(customer_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    cursor.execute(f"SELECT c_id from customers where c_id = {customer_id}")
+    cursor.execute(f"SELECT c_id, created_by from customers where c_id = %s", (customer_id,))
     customer = cursor.fetchone()
 
     if not customer:
@@ -105,6 +104,10 @@ def update_customer(customer_id):
         conn.close()
         return jsonify({'error' : 'Customer not found!'}), 404
     
+    #permission check 
+    if g.role != 'ADMIN' and customer['created_by'] != g.user_id:
+        return jsonify({'error' : 'Access denied'}), 403
+
     #update 
     cursor.execute('UPDATE customers set c_name = %s, c_email = %s, phone = %s WHERE c_id = %s', (name, email, phone, customer_id))
 
@@ -115,33 +118,49 @@ def update_customer(customer_id):
     return jsonify({'message' : 'Customer updated successfully!'}), 200
 
 @customers_bp.route('/<int:customer_id>', methods=['DELETE'])
-#@require_roles('ADMIN')
+@require_roles('ADMIN', 'AGENT')
 def delete_customer(customer_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    cursor.execute('SELECT c_id from customers WHERE c_id = %s', (customer_id,))
+    #Fetch customer WITH created_by
+    cursor.execute(
+        'SELECT c_id, created_by FROM customers WHERE c_id = %s',
+        (customer_id,)
+    )
     customer = cursor.fetchone()
 
     if not customer:
         cursor.close()
         conn.close()
-        return jsonify({'error' : 'Customer not found!'}), 404
-    
-    #check if customers has tickets
-    cursor.execute('SELECT t_id FROM tickets WHERE c_id = %s LIMIT 1', (customer_id,))
+        return jsonify({'error': 'Customer not found!'}), 404
+
+    #Permission check
+    if g.role != 'ADMIN' and customer['created_by'] != g.user_id:
+        cursor.close()
+        conn.close()
+        return jsonify({'error': 'Access denied'}), 403
+
+    #Check if customer has tickets
+    cursor.execute(
+        'SELECT t_id FROM tickets WHERE c_id = %s LIMIT 1',
+        (customer_id,)
+    )
     ticket = cursor.fetchone()
 
     if ticket:
         cursor.close()
         conn.close()
-        return jsonify({'error' : 'Cannot delete customer with existing tickets'}), 404
-    
-    #delete
-    cursor.execute(f'DELETE from customers WHERE c_id = {customer_id}')
+        return jsonify({'error': 'Cannot delete customer with existing tickets'}), 403
 
+    #Delete customer
+    cursor.execute(
+        'DELETE FROM customers WHERE c_id = %s',
+        (customer_id,)
+    )
     conn.commit()
-    conn.close()
-    cursor.close()
 
-    return jsonify({'message' : 'Customer deleted successfully'})
+    cursor.close()
+    conn.close()
+
+    return jsonify({'message': 'Customer deleted successfully'}), 200

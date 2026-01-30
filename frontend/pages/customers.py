@@ -6,11 +6,18 @@ from utils import BACKEND_URL, auth_headers
 if "show_add_customer" not in st.session_state:
     st.session_state.show_add_customer = False
 
-if "delete_customer_id" not in st.session_state:
-    st.session_state.delete_customer_id = None
+if "delete_target" not in st.session_state:
+    st.session_state.delete_target = None
+
+if "delete_target" not in st.session_state:
+    st.session_state.delete_target = False
 
 if "edit_customer" not in st.session_state:
     st.session_state.edit_customer = None
+
+if 'role' not in st.session_state:
+    st.session_state.role = None
+
 
 if 'user_id' not in st.session_state or st.session_state.user_id is None:
     st.error("Session expired. Please login again.")
@@ -83,51 +90,40 @@ for _, row in df.iterrows():
         if can_modify:
             if st.button("Edit", key=f"edit_{row['c_id']}"):
                 st.session_state.edit_customer = row.to_dict()
-                st.session_state.delete_customer_id = None
+                st.session_state.delete_target = None
 
-            if st.button("Delete", key=f"del_{row['c_id']}"):
-                st.session_state.delete_customer_id = row['c_id']
-                st.session_state.delete_customer_name = row['c_name']
-                st.session_state.edit_customer = None
-                st.rerun()
+            if st.button('Delete', key=f"delete{row['c_id']}"):
+                st.session_state.delete_target = row.to_dict()
+                #st.rerun()
 
 #delete confirmation
-if st.session_state.delete_customer_id:
+if st.session_state.delete_target:
+
+    customer = st.session_state.delete_target
 
     st.markdown("---")
-    st.warning("Do you really want to delete this customer?")
+    st.error(f"Delete customer **{customer['c_name']}** ?")
 
     col1, col2 = st.columns(2)
 
     with col1:
-        if st.button('Cancel', key='cancel_delete'):
-            st.session_state.delete_customer_id = None
+        if st.button("Cancel"):
+            st.session_state.delete_target = None
             st.rerun()
 
     with col2:
-        if st.button("Yes", key='confirm_delete'):
+        if st.button("Yes, Delete"):
             res = requests.delete(
-            f"{BACKEND_URL}/customers/{st.session_state.delete_customer_id}",
-            headers=auth_headers()
-        )
-        try:
-            data = res.json()
-        except ValueError:
-            st.error(f"Request failed (status {res.status_code})")
-        else:
+                f"{BACKEND_URL}/customers/{customer['c_id']}",
+                headers=auth_headers()
+            )
+
             if res.status_code == 200:
                 st.success("Customer deleted successfully")
-                st.session_state.delete_customer_id = None
+                st.session_state.delete_target = None
                 st.rerun()
             else:
-                try:
-                    error_msg = res.json().get("error", "Failed to delete customer")
-                except ValueError:
-                    error_msg = f"Failed to delete customer (status {res.status_code})"
-
-                st.error(error_msg)
-
-st.markdown("---")
+                st.error(res.json().get("error", "Delete failed"))
 
 #edit 
 if st.session_state.edit_customer:
