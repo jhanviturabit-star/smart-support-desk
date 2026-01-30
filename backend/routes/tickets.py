@@ -1,6 +1,6 @@
 from models.ticket import CreateTicket
 import mysql.connector, json
-from flask import jsonify, Flask, request, Blueprint
+from flask import jsonify, Flask, request, Blueprint, g
 from pydantic import ValidationError
 from db import get_db_connection
 from auth.decorators import require_roles
@@ -28,7 +28,7 @@ def create_ticket():
             INSERT INTO tickets (c_id, t_title, t_description, priority, t_status)
             VALUES (%s, %s, %s, %s, %s)
         """
-        cursor.execute(query, (data.c_id, data.t_title, data.t_description, data.priority, data.t_status))
+        cursor.execute(query, (data.c_id, data.t_title, data.t_description, data.priority, data.t_status, g.user_id))
         conn.commit()
 
         return jsonify({
@@ -57,8 +57,8 @@ def get_tickets():
         cursor = conn.cursor(dictionary=True)
 
         query = """
-        SELECT t.t_id, t.t_title, t.t_description, t.priority, t.t_status, t.created_at, 
-        c.c_id, c.c_name from tickets t JOIN customers c  ON t.c_id = c.c_id WHERE 1=1
+        SELECT t.t_id, t.t_title, t.t_description, t.priority, t.t_status, t.created_at, t.created_by, t.assigned_agent_id,
+        c.c_id, c.c_name from tickets t JOIN customers c ON t.c_id = c.c_id WHERE 1=1
         """
 
         params = []
@@ -137,7 +137,7 @@ def update_ticket(ticket_id):
 
         return jsonify({"message": "Ticket updated successfully"}), 200
 
-    except Exception as e:
+    except mysql.connector.Error as e:
         return jsonify({"error": "Database error", "details": str(e)}), 500
 
     finally:

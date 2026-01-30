@@ -49,7 +49,7 @@ with top_left:
 
 with top_right:
     st.write(" ") #adding a space
-    if st.button("Add"):
+    if st.button("Add Customer"):
         st.session_state.show_add_customer = True
 
 # col1, col2 = st.columns([3,1])
@@ -69,7 +69,7 @@ if search:
         df['c_name'].str.contains(search, case=False, na=False) | df['c_email'].str.contains(search, case=False, na=False)
     ]
 
-#customer row
+#disply customer row
 st.markdown("---")
 
 for _, row in df.iterrows():
@@ -125,7 +125,7 @@ if st.session_state.delete_target:
             else:
                 st.error(res.json().get("error", "Delete failed"))
 
-#edit 
+#edit customer
 if st.session_state.edit_customer:
 
     customer = st.session_state.edit_customer
