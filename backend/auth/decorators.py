@@ -17,7 +17,7 @@ def require_roles(*roles):
                 payload = decode_token(token)
 
                 if payload['role'] not in roles:
-                    return jsonify({'error' : 'Access denied'}), 403
+                    return jsonify({'error' : 'Access denied'}), 403    
                 
                 g.user_id = payload['user_id'] #attach user information
                 g.role = payload['role']

@@ -25,15 +25,15 @@ def create_ticket():
         cursor = conn.cursor()
 
         query = """
-            INSERT INTO tickets (c_id, t_title, t_description, priority, t_status)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO tickets (c_id, t_title, t_description, priority, t_status, created_by, assigned_agent_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
-        cursor.execute(query, (data.c_id, data.t_title, data.t_description, data.priority, data.t_status, g.user_id))
+        cursor.execute(query, (data.c_id, data.t_title, data.t_description, data.priority, data.t_status, g.user_id, g.user_id))
         conn.commit()
 
         return jsonify({
-            "message": "Customer created successfully",
-            "customer_id": cursor.lastrowid
+            "message": "Ticket created successfully",
+            "ticket_id": cursor.lastrowid
         }), 201
 
     except mysql.connector.Error as e:
@@ -86,7 +86,6 @@ def get_tickets():
     finally:
         cursor.close()
         conn.close()
-
 
 #Ticket updates by admins & agents
 @tickets_bp.route("/<int:ticket_id>", methods=["PATCH"])
@@ -143,3 +142,40 @@ def update_ticket(ticket_id):
     finally:
         cursor.close()
         conn.close()
+
+#Delete ticket by admins & agents
+@tickets_bp.route("/<int:ticket_id>", methods=["DELETE"])
+@require_roles('AGENT', 'ADMIN')
+def delete_ticket(ticket_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    #Fetch tickets
+    cursor.execute('SELECT t_id, created_by FROM tickets WHERE t_id = %s', (ticket_id,))
+
+    ticket = cursor.fetchone()
+
+    if not ticket:
+        cursor.close()
+        conn.close()
+        return jsonify({'error' : 'Ticket not found'}), 404
+    
+    #Permission check
+    if g.role != 'ADMIN' and ticket['created_by'] != g.user_id:
+        cursor.close()
+        conn.close()
+        return jsonify({'error': 'Access denied'}), 403
+    
+    #Delete ticket
+    cursor.execute(
+        'DELETE FROM tickets WHERE t_id = %s',
+        (ticket_id,)
+    )
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    return jsonify({'message': 'Ticket deleted successfully'}), 200
+    
+
