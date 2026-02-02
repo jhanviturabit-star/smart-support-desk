@@ -1,19 +1,21 @@
 import streamlit as st
 import pandas as pd
+import jwt
 import requests
 from utils import BACKEND_URL, auth_headers
 
+st.set_page_config(page_title="Smart Support Desk", layout="wide")
+
 #can_modify = (st.session_state.role == 'ADMIN' or row.get('created_by') == st.session_state.user_id)
 
-if 'user_id' not in st.session_state:
-    st.session_state.user_id = None
-
-st.set_page_config(page_title="Smart Support Desk", layout="wide")
+# if 'user_id' not in st.session_state:
+#     st.session_state.user_id = None
 
 # Session State
 if "token" not in st.session_state:
     st.session_state.token = None
     st.session_state.role = None
+    st.session_state.user_id = None
 
 # AUTH PAGE
 def auth_page():
@@ -63,7 +65,7 @@ def auth_page():
 
             if res.status_code == 201:
                 st.success("Account created. Please login.")
-                st.success("STATUS:", res.status_code)
+                st.success("Customer created successfully")
                 st.success("RESPONSE:", res.text)
             else:
                 try:
