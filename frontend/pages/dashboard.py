@@ -4,11 +4,11 @@ import requests
 from streamlit_app import BACKEND_URL, auth_headers
 
 #DASHBOARD
-if st.session_state.role in ["TEAM_LEAD", "ADMIN"]:
+if st.session_state.role in ["TEAM_LEAD", "ADMIN", "AGENT"]:
     st.header("Dashboard")
 
     res = requests.get(
-        f"{BACKEND_URL}/dashboard/summary",
+        f"{BACKEND_URL}/dashboard/",
         headers=auth_headers()
     )
 
@@ -32,3 +32,16 @@ if st.session_state.role in ["TEAM_LEAD", "ADMIN"]:
         col3.metric("Closed", status_count["Closed"])
         col4.metric("In Progress", status_count["In_progress"])
         col5.metric("Resolved", status_count["Resolved"])
+
+        st.markdown("Tickets by Stutus")
+
+        status_chart_data = {
+            "Status" : list(status_count.keys()),
+            "Count" : list(status_count.values())
+        }
+
+        st.bar_chart(status_chart_data)
+        # priority_chart_data = {
+        #     "Priority" : list(priority_count.keys()),
+        #     "Count" : list(priority_count.values())
+        # }

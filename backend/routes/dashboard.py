@@ -1,5 +1,5 @@
 import mysql.connector, json
-from flask import jsonify, Flask, request, Blueprint
+from flask import jsonify, Flask, request, Blueprint, g
 from pydantic import ValidationError
 from db import get_db_connection
 from redis_client import redis_client
@@ -8,49 +8,75 @@ from auth.decorators import require_roles
 dashboard_bp = Blueprint('dashboard', __name__)
 
 @dashboard_bp.route('/', methods=['GET'])
-@require_roles('ADMIN', 'TEAM_LEAD')
+@require_roles('ADMIN', 'AGENT', 'TEAM_LEAD')
 def dashboard_summary():
-    cache_key = 'dashboard_summary'
+    cache_key = f"dashboard:{g.role}:{g.user_id}"
 
-    #check into redis first
-    chached_data = redis_client.get(cache_key)
-    if chached_data:
-        return jsonify({
-            'source': 'cache',
-            'data' : json.loads(chached_data)
-        }), 200
+    cached_data = redis_client.get(cache_key)
+
+    if cached_data:
+        return jsonify({'source' : 'cache', 'data' : 'json.loads(cached_data)'}), 200
     
-    try: #toal tickets
+    try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        cursor.execute("SELECT COUNT(*) AS total FROM tickets")
-        total = cursor.fetchone()['total']
+        #Agent dashboard
+        if g.role == 'AGENT':
 
-        #tickets by status
-        cursor.execute('''SELECT t_status, COUNT(*) AS count FROM tickets GROUP BY t_status''')
-        status_counts = cursor.fetchall()
+            #total tickets created by agent
+            cursor.execute(
+                'SELECT (*) AS total from tickets WHERE created_by = %s', (g.user_id,)
+            )
+            total  = cursor.fetchone()['total']
 
-        #tickets by priority
-        cursor.execute('''SELECT t_priority, COUNT(*) AS count FROM tickets GROUP BY t_priority''')
-        priority_counts = cursor.fetchall()
+            #tickets by status
+            cursor.execute("""SELECT t_status, COUNT(*) AS count from tickets WHERE created_by = %s GROUP BY t_status""", (g.user_id,)
+            )
+            status_counts = cursor.fetchall()
+
+            #tickets by priority
+            cursor.execute("""SELECT priority, COUNT(*) AS count from tickets WHERE created_by = %s GROUP BY priority""", (g.user_id,)
+            )
+            priority_counts = cursor.fetchall()
+            
+            #total tickets created by agent
+            cursor.execute(
+                'SELECT (*) AS total from customers WHERE created_by = %s', (g.user_id,)
+            )
+            total_customers  = cursor.fetchone()['total']
+
+        #Admin/Team-Lead dashboard
+        else:
+            cursor.execute("SELECT COUNT(*) AS total FROM tickets")    
+            total = cursor.fetchone()['total']
+
+            cursor.execute("""SELECT t_status, COUNT(*) AS count FROM tickets GROUP BY t_status""")
+            status_counts = cursor.fetchall()
+
+            cursor.execute("""SELECT priority, COUNT(*) AS count FROM tickets GROUP BY priority""")
+            priority_counts = cursor.fetchall()
+
+            cursor.execute("SELECT COUNT(*) AS total FROM customers")
+            total_customers = cursor.fetchall()['total']
 
         result = {
-            "total_tickets" : total,
-            "tickets_by_status" : status_counts,
-            "tickets_by_priority" : priority_counts
+            'total_tickets': total,
+            'tickets_by_status' : status_counts,
+            'tickets_by_priority' : priority_counts,
+            'total_customers' : total_customers
         }
 
         redis_client.setex(cache_key, 60, json.dumps(result))
 
         return jsonify({
-            "source" : "database",
-            "data" : result
+            'source' : 'database',
+            'data' : result
         }), 200
     
     except Exception as e:
         return jsonify({
-            'error' : 'Database Error',
+            'error' : 'database error',
             'details' : str(e)
         }), 500
     
