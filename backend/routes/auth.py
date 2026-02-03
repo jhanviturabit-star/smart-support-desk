@@ -37,7 +37,7 @@ def login():
 
     return jsonify({
         "token": token,
-        "role": user["role"],
+        "role": user["role"].upper(),
         'user_id' : user['user_id']
     }), 200
 

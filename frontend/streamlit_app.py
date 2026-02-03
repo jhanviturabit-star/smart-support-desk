@@ -17,6 +17,12 @@ if "token" not in st.session_state:
     st.session_state.role = None
     st.session_state.user_id = None
 
+def logout():
+    st.session_state.token = None
+    st.session_state.role = None
+    st.session_state.user_id = None
+    st.rerun()
+
 # AUTH PAGE
 def auth_page():
     st.title("Smart Support Desk")
@@ -27,17 +33,19 @@ def auth_page():
     with tab1:
         email = st.text_input("Email", key="login_email")
         password = st.text_input("Password", type="password", key="login_password")
+        role = st.radio("Login as:", options=['AGENT', 'ADMIN'], horizontal=True)
+
 
         if st.button("Login"):
             res = requests.post(
                 f"{BACKEND_URL}/auth/login",
-                json={"email": email, "password": password}
+                json={"email": email, "password": password, "role": role}
             )
 
             if res.status_code == 200:
                 data = res.json()
                 st.session_state.token = data["token"]
-                st.session_state.role = data["role"]
+                st.session_state.role = str(data["role"]).upper()
                 st.write("LOGIN RESPONSE:", data)
                 st.session_state.user_id = data["user_id"]
                 st.success("Logged in successfully")
@@ -52,6 +60,8 @@ def auth_page():
         name = st.text_input("Full Name", key="signup_name")
         email = st.text_input("Email", key="signup_email")
         password = st.text_input("Password", type="password", key="signup_password")
+        signup_role = st.radio("Register as:", options=['AGENT', 'ADMIN'], horizontal=True, key="signup_role")
+
 
         if st.button("Create Account"):
             res = requests.post(
@@ -59,13 +69,13 @@ def auth_page():
                 json={
                     "name": name,
                     "email": email,
-                    "password": password
+                    "password": password,
+                    "role": signup_role
                 }
             )
 
             if res.status_code == 201:
                 st.success("Account created. Please login.")
-                st.success("Customer created successfully")
                 st.success("RESPONSE:", res.text)
             else:
                 try:
@@ -82,6 +92,24 @@ if st.session_state.token is None:
     auth_page()
 
 st.success("Logged in successfully! Use the sidebar to navigate")
+
+with st.sidebar:
+    st.title("Support Desk")
+
+    st.markdown(f"**Logged in as:** {st.session_state.role}")
+
+    st.markdown("---")
+
+    st.page_link("pages/dashboard.py", label="Dashboard")
+    st.page_link("pages/customers.py", label="Customers")
+    st.page_link("pages/tickets.py", label="Tickets")
+
+    st.markdown("---")
+
+    if st.button("Logout"):
+        logout()
+
+    st.caption("Smart Support Desk v1.0")
 
 # MAIN APP
 st.title("Smart Support Desk")
