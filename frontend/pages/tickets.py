@@ -41,6 +41,10 @@ res = requests.get(
 
 if res.status_code == 200:
     df = pd.DataFrame(res.json())
+
+    if st.session_state.role == 'AGENT':
+        df = df[df['created_by'] == st.session_state.user_id]
+
 else:
     st.error("Failed to load tickets")
     st.stop()
@@ -100,7 +104,16 @@ if status_filter != "All":
 if priority_filter != "All":
     df = df[df['priority'] == priority_filter]
 
-st.markdown("---")
+if st.session_state.role == "AGENT" and df.empty and not st.session_state.show_add_ticket:
+    st.info("You dont have any tickets yet")
+    st.subheader("Create your first ticket")
+
+    if st.button("Create your first ticket"):
+        st.session_state.show_add_ticket = True
+        st.rerun()
+
+if st.session_state.show_add_ticket:
+    st.markdown("---")
 
 #Ticket list
 for _, row in df.iterrows():
@@ -211,16 +224,19 @@ if st.session_state.edit_ticket:
         if cancel:
             st.session_state.edit_ticket = None
             st.rerun()
-
+       
         if save:
             res = requests.patch(
                 f"{BACKEND_URL}/tickets/{ticket['t_id']}",
                 headers=auth_headers(),
+              
                 json={
                     "t_title": title,
                     "t_description": description,
                     "priority": priority,
-                    "t_status": status
+                    "t_status": status,
+                    'role': st.session_state.role,'user_id': st.session_state.user_id,
+                    
                 }
             )
 
@@ -237,12 +253,11 @@ if st.session_state.edit_ticket:
 
 #Create Ticket
 if st.session_state.show_add_ticket:
-    st.markdown("---")
     st.subheader("Create New Ticket")
 
     if customers.empty:
         st.warning("No customers found. Create a customer first")
-        st.stop()
+        #st.stop()
 
     with st.form("create_ticket_form"):
         selected_customer = st.selectbox("Select your customer", options=customer_names, index=0)
