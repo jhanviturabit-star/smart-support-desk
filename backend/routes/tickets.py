@@ -110,10 +110,11 @@ def update_ticket(ticket_id):
             return jsonify({"error": "Ticket not found"}), 404
 
         # Authorization: AGENT can only update their own tickets
-        user_role = request.user['role']
-        user_id = request.user['user_id']
-
-        if user_role == "AGENT" and ticket.get("assigned_to") != user_id:
+        user_role = data.get('role')
+        user_id = data.get('user_id')
+        # print('-----------------------------------------------------------')
+        # print(user_role)
+        if user_role == "AGENT" and ticket.get("assigned_agent_id") != user_id:
             return jsonify({"error": "Permission denied"}), 403
 
         # Build dynamic query
