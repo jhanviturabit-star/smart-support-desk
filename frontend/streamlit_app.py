@@ -6,6 +6,13 @@ from utils import BACKEND_URL, auth_headers
 
 st.set_page_config(page_title="Smart Support Desk", layout="wide")
 
+hide_menu_style = """
+<style>
+[data-testid="stSidebarNav"] {display: none;}
+</style>
+"""
+st.markdown(hide_menu_style, unsafe_allow_html=True)
+
 #can_modify = (st.session_state.role == 'ADMIN' or row.get('created_by') == st.session_state.user_id)
 
 # if 'user_id' not in st.session_state:
@@ -76,7 +83,7 @@ def auth_page():
 
             if res.status_code == 201:
                 st.success("Account created. Please login.")
-                st.success("RESPONSE:", res.text)
+                st.write(f"RESPONSE: {res.text}")
             else:
                 try:
                     error_mssg = res.json().get('error', 'Registration failed')

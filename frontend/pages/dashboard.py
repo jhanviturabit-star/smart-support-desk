@@ -42,7 +42,7 @@ data = res.json()["data"]
 # ---------------- METRICS ROW (TOP CARDS) ----------------
 st.subheader("Overview")
 
-col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3, col4, col5, col6 = st.columns(6)
 
 # Prepare status counts safely
 status_count = {
@@ -65,7 +65,10 @@ col5.metric("Resolved", status_count["Resolved"])
 #Different metrics according to Admin & Agent
 if st.session_state.role == 'AGENT':
     total_customers = len(data["top_customers"])
-    col6.metric("My Customer")
+    col6.metric("My Customer", total_customers)
+else:
+    total_customers = len(data['top_customers'])
+    col6.metric("Top customers"), total_customers
 
 st.markdown("---")
 

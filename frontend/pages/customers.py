@@ -34,7 +34,11 @@ res = requests.get(
 
 if res.status_code == 200:
     df = pd.DataFrame(res.json())
-    #st.dataframe(df, use_container_width=True)
+    
+    #filter customers for agent
+    if st.session_state.role == 'AGENT':
+        df = df[df["created_by"] == st.session_state.user_id]
+
 else:
     st.error("Failed to load customers")
 
@@ -71,6 +75,15 @@ if search:
 
 #disply customer row
 st.markdown("---")
+
+if st.session_state.role == 'AGENT' and df.empty and not st.session_state.show_add_customer:
+    st.info("You dont have any customers yet")
+    st.subheader("Create your first customer")
+
+    if st.button("Create your first customer"):
+        st.session_state.show_add_customer = True
+
+    st.stop()
 
 for _, row in df.iterrows():
     col1, col2, col3, col4 = st.columns([3, 3, 2, 2])
