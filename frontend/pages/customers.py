@@ -23,6 +23,8 @@ if 'user_id' not in st.session_state or st.session_state.user_id is None:
     st.error("Session expired. Please login again.")
     st.stop()
 
+print(st.session_state.token)
+
 #CUSTOMERS
 st.header("Customers")
 st.subheader("Manage your customer database")
@@ -33,11 +35,19 @@ res = requests.get(
 )
 
 if res.status_code == 200:
+
+    # Debugging: Print the raw JSON response to verify the presence of 'created_by'
+    data = res.json()
+    print(f"Raw API response: {data}")  # Debugging API response
+
     df = pd.DataFrame(res.json())
     
     #filter customers for agent
     if st.session_state.role == 'AGENT':
-        df = df[df["created_by"] == st.session_state.user_id]
+        st.write("Response JSON:", res.json())
+        df = pd.DataFrame(res.json())
+        st.write("Columns:", df.columns)
+        #df = df[df["created_by"] == st.session_state.user_id]
 
 else:
     st.error("Failed to load customers")

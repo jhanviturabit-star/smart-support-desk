@@ -51,22 +51,35 @@ def create_customer():
 @require_roles('AGENT', 'ADMIN')
 def get_customers():
     try:
+
+        # Debugging: print user_id to confirm it's available in the route
+        print(f"Fetching customers for User ID: {g.user_id}")  # Confirm user_id in the route
+
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
+        is_admin = (g.role == "ADMIN")
+
         query = """
-        SELECT * from customers
+            SELECT c_id, c_name, c_email, phone, created_by
+            FROM customers
         """
-        cursor.execute("SELECT c_id, c_name, c_email, phone, created_by FROM customers")
-        
+
+        params = []
+
+        if not is_admin:
+            query += " WHERE created_by = %s"
+            params.append(g.user_id)
+
+        cursor.execute(query, params)
         customers = cursor.fetchall()
 
         return jsonify(customers), 200
 
     except mysql.connector.Error as e:
         return jsonify({
-            "error" : "No customers found!",
-            "details" : str(e)
+            "error": "No customers found!",
+            "details": str(e)
         }), 500
 
     finally:

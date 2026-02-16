@@ -68,7 +68,7 @@ if st.session_state.role == 'AGENT':
     col6.metric("My Customer", total_customers)
 else:
     total_customers = len(data['top_customers'])
-    col6.metric("Top customers"), total_customers
+    col6.metric("Top customers", total_customers)
 
 st.markdown("---")
 
@@ -123,4 +123,4 @@ st.markdown("---")
 if st.session_state.role == "AGENT":
     st.success("You are viewing your own tickets only (Agent Dashboard)")
 else:
-    st.success("You are viewing ALL tickets (Admin / Team Lead Dashboard)")
+    st.success("You are viewing ALL tickets (Admin Dashboard)")

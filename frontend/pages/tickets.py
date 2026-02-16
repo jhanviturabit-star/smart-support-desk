@@ -39,11 +39,14 @@ res = requests.get(
     headers=auth_headers()
 )
 
+print(st.session_state.token)
+
 if res.status_code == 200:
     df = pd.DataFrame(res.json())
 
     if st.session_state.role == 'AGENT':
-        df = df[df['created_by'] == st.session_state.user_id]
+        st.write(df)
+        #df = df[df['created_by'] == st.session_state.user_id]
 
 else:
     st.error("Failed to load tickets")
@@ -57,7 +60,7 @@ cust_res = requests.get(
 
 if cust_res.status_code == 200:
     customers = pd.DataFrame(cust_res.json())
-    customers = customers[customers['created_by'] == int(st.session_state.user_id)]
+    #customers = customers[customers['created_by'] == int(st.session_state.user_id)]
 else:
     customers = pd.DataFrame()
 

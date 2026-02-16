@@ -52,10 +52,12 @@ def auth_page():
             if res.status_code == 200:
                 data = res.json()
                 st.session_state.token = data["token"]
+                print("NEW TOKEN:", res.json()["token"])
                 st.session_state.role = str(data["role"]).upper()
                 st.write("LOGIN RESPONSE:", data)
                 st.session_state.user_id = data["user_id"]
                 st.success("Logged in successfully")
+                print(st.session_state.token)
                 st.rerun()
             else:
                 st.error("Invalid credentials")

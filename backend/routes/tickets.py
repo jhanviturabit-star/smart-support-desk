@@ -8,7 +8,7 @@ from auth.decorators import require_roles
 tickets_bp = Blueprint('tickets', __name__)
 
 @tickets_bp.route("/create", methods=["POST"])
-@require_roles('AGENT', 'TEAM_LEAD')
+@require_roles('AGENT', 'ADMIN')
 def create_ticket():
 
     try:
@@ -47,7 +47,7 @@ def create_ticket():
         conn.close() 
 
 @tickets_bp.route('/', methods=['GET'])
-@require_roles('AGENT', 'TEAM_LEAD')
+@require_roles('AGENT', 'ADMIN')
 def get_tickets():
     status = request.args.get('status')
     priority = request.args.get('priority')
@@ -63,12 +63,16 @@ def get_tickets():
 
         params = []
 
+        if g.role == "AGENT":
+            query += " AND t.assigned_agent_id = %s"
+            params.append(g.user_id)
+
         if status:
-            query += " ADD t.t_status = %s"
+            query += " AND t.t_status = %s"
             params.append(status)
 
         if priority:
-            query += " ADD t.priority = %s"
+            query += " AND t.priority = %s"
             params.append(priority)
 
         cursor.execute(query, params)
@@ -89,7 +93,7 @@ def get_tickets():
 
 #Ticket updates by admins & agents
 @tickets_bp.route("/<int:ticket_id>", methods=["PATCH"])
-@require_roles('AGENT', 'TEAM_LEAD', 'ADMIN')
+@require_roles('AGENT', 'ADMIN')
 def update_ticket(ticket_id):
     data = request.json
     status = data.get("t_status")
