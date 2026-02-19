@@ -27,6 +27,8 @@ def create_customer():
         query = """
             INSERT INTO customers (c_name, c_email, phone, created_by)
             VALUES (%s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                phone = VALUES(phone)
         """
         cursor.execute(query, (data.c_name, data.c_email, data.phone, g.user_id))
         conn.commit()
@@ -66,6 +68,8 @@ def get_customers():
         """
 
         params = []
+
+        print("CREATE CUSTOMER ROUTE HIT")
 
         if not is_admin:
             query += " WHERE created_by = %s"
