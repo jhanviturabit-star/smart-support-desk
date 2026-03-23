@@ -1,4 +1,4 @@
-# **Smart Support Desk – README (Short Version)**
+# **Smart Support Desk**
 
 ## 📌 What is this?
 
